@@ -137,6 +137,21 @@ constexpr auto HSX_L2_RQSTS_REFERENCES_UMASK = 0xff;
 #define SKL_MEM_LOAD_RETIRED_L2_HIT_EVTNR (0xD1)
 #define SKL_MEM_LOAD_RETIRED_L2_HIT_UMASK (0x02)
 
+#define SKL_MEM_LOAD_RETIRED_L1_HIT_EVTNR (0xD1)
+#define SKL_MEM_LOAD_RETIRED_L1_HIT_UMASK (0x01)
+
+#define SKL_MEM_LOAD_RETIRED_L1_MISS_EVTNR (0xD1)
+#define SKL_MEM_LOAD_RETIRED_L1_MISS_UMASK (0x08)
+
+#define SKL_MEM_LOAD_RETIRED_L1_HIT_LFB_EVTNR (0xD1)
+#define SKL_MEM_LOAD_RETIRED_L1_HIT_LFB_UMASK (0x40)
+
+#define SKL_MEM_LOAD_RETIRED_ALL_LOADS_EVTNR (0xD1)
+#define SKL_MEM_LOAD_RETIRED_ALL_LOADS_UMASK (0x81)
+
+#define SKL_MEM_LOAD_RETIRED_ALL_STORES_EVTNR (0xD1)
+#define SKL_MEM_LOAD_RETIRED_ALL_STORES_UMASK (0x82)
+
 // architectural on-core events
 
 #define ARCH_LLC_REFERENCE_EVTNR        (0x2E)
@@ -385,7 +400,7 @@ struct FixedEventControlRegister
             uint64 usr2 : 1;
             uint64 any_thread2 : 1;
             uint64 enable_pmi2 : 1;
-	    // CTR3
+            // CTR3
             uint64 os3 : 1;
             uint64 usr3 : 1;
             uint64 any_thread3 : 1;

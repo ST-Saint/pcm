@@ -822,7 +822,7 @@ bool PCM::perfSupportsTopDown()
 }
 #endif
 
-const std::vector<std::string> qat_evtsel_mapping = 
+const std::vector<std::string> qat_evtsel_mapping =
 {
     { "sample_cnt" },               //0x0
     { "pci_trans_cnt" },            //0x1
@@ -922,7 +922,7 @@ public:
         switch (operation)
         {
             case PCM::QAT_TLM_START: //enable
-                state = PCM::IDX_STATE_ON; 
+                state = PCM::IDX_STATE_ON;
                 // falls through
             case PCM::QAT_TLM_STOP: //disable
                 if (state == PCM::IDX_STATE_ON)
@@ -993,7 +993,7 @@ class QATTelemetryVirtualCounterRegister : public HWRegister
     std::shared_ptr<QATTelemetryVirtualControlRegister> controlReg;
     int ctr_id;
 public:
-    QATTelemetryVirtualCounterRegister( std::shared_ptr<QATTelemetryVirtualGeneralConfigRegister> gConfigReg_, std::shared_ptr<QATTelemetryVirtualControlRegister> controlReg_, int ctr_id_) : 
+    QATTelemetryVirtualCounterRegister( std::shared_ptr<QATTelemetryVirtualGeneralConfigRegister> gConfigReg_, std::shared_ptr<QATTelemetryVirtualControlRegister> controlReg_, int ctr_id_) :
         gConfigReg(gConfigReg_),
         controlReg(controlReg_),
         ctr_id(ctr_id_)
@@ -1757,7 +1757,7 @@ bool getIDXDevBAR(std::vector<std::pair<uint32, uint32> > & socket2bus, uint32 d
         PciHandleType IDXHandle(s2bus.first, s2bus.second, dev, func);
         IDXHandle.read64(SPR_IDX_ACCEL_BAR0_OFFSET, &memBar);
         IDXHandle.read32(SPR_IDX_ACCEL_PCICMD_OFFSET, &pciCmd);
-        IDXHandle.read32(SPR_IDX_ACCEL_PMCSR_OFFSET, &pmCsr);      
+        IDXHandle.read32(SPR_IDX_ACCEL_PMCSR_OFFSET, &pmCsr);
         if (memBar == 0x0 || (pciCmd & 0x02) == 0x0) //Check BAR0 is valid or NOT.
         {
             std::cerr << "Warning: IDX - BAR0 of B:0x" << std::hex << s2bus.second << ",D:0x" << std::hex << dev << ",F:0x" << std::hex << func
@@ -1786,7 +1786,7 @@ bool getIDXDevBAR(std::vector<std::pair<uint32, uint32> > & socket2bus, uint32 d
             numaNode = std::atoi(devNumaNodeStr.c_str());
             if (numaNode == (std::numeric_limits<uint32>::max)())
             {
-                numaNode = 0xff; //translate to special value for numa disable case. 
+                numaNode = 0xff; //translate to special value for numa disable case.
             }
         }
         //std::cout << "IDX DEBUG: numa node file path=" << devNumaNodePath.str().c_str()  << ", value=" << numaNode << std::endl;
@@ -3280,6 +3280,21 @@ PCM::ErrorCode PCM::program(const PCM::ProgramMode mode_, const void * parameter
                 coreEventDesc[2].umask_value = SKL_MEM_LOAD_RETIRED_L2_MISS_UMASK;
                 coreEventDesc[3].event_number = SKL_MEM_LOAD_RETIRED_L2_HIT_EVTNR;
                 coreEventDesc[3].umask_value = SKL_MEM_LOAD_RETIRED_L2_HIT_UMASK;
+
+
+                // PROG: add L1 counters
+                coreEventDesc[4].event_number = SKL_MEM_LOAD_RETIRED_L1_HIT_EVTNR;
+                coreEventDesc[4].event_number = SKL_MEM_LOAD_RETIRED_L1_HIT_UMASK;
+
+                coreEventDesc[5].event_number = SKL_MEM_LOAD_RETIRED_L1_MISS_EVTNR;
+                coreEventDesc[5].event_number = SKL_MEM_LOAD_RETIRED_L1_MISS_UMASK;
+
+                coreEventDesc[6].event_number = SKL_MEM_LOAD_RETIRED_L1_HIT_LFB_EVTNR;
+                coreEventDesc[6].event_number = SKL_MEM_LOAD_RETIRED_L1_HIT_LFB_UMASK;
+
+                coreEventDesc[7].event_number = SKL_MEM_LOAD_RETIRED_ALL_LOADS_EVTNR;
+                coreEventDesc[7].event_number = SKL_MEM_LOAD_RETIRED_ALL_LOADS_UMASK;
+
                 if (core_gen_counter_num_max == 2)
                 {
                     L3CacheHitRatioAvailable = true;
@@ -3832,17 +3847,17 @@ PCM::ErrorCode PCM::programCoreCounters(const int i /* core */,
         // start counting, enable all (4 programmable + 3 fixed) counters
         uint64 value = (1ULL << 0) + (1ULL << 1) + (1ULL << 2) + (1ULL << 3) + (1ULL << 32) + (1ULL << 33) + (1ULL << 34);
 
-	if (isFixedCounterSupported(3))
-	{
-	    value |= (1ULL << 35);
-	    MSR[i]->write(TOPDOWN_SLOTS_ADDR, 0);
-	}
+        if (isFixedCounterSupported(3))
+        {
+            value |= (1ULL << 35);
+            MSR[i]->write(TOPDOWN_SLOTS_ADDR, 0);
+        }
 
-	if (isHWTMAL1Supported())
-	{
-	    value |= (1ULL << 48);
-	    MSR[i]->write(PERF_METRICS_ADDR, 0);
-	}
+        if (isHWTMAL1Supported())
+        {
+            value |= (1ULL << 48);
+            MSR[i]->write(PERF_METRICS_ADDR, 0);
+        }
 
         if (isAtom() || cpu_model == KNL)       // KNL and Atom have 3 fixed + only 2 programmable counters
             value = (1ULL << 0) + (1ULL << 1) + (1ULL << 32) + (1ULL << 33) + (1ULL << 34);
@@ -3867,7 +3882,7 @@ PCM::ErrorCode PCM::programCoreCounters(const int i /* core */,
 #ifdef PCM_USE_PERF
     else
     {
-	    if (isFixedCounterSupported(3) && isHWTMAL1Supported() && perfSupportsTopDown())
+            if (isFixedCounterSupported(3) && isHWTMAL1Supported() && perfSupportsTopDown())
         {
             std::vector<std::pair<const char*, int> > topDownEvents = {  std::make_pair(perfSlotsPath, PERF_TOPDOWN_SLOTS_POS),
                                           std::make_pair(perfBadSpecPath, PERF_TOPDOWN_BADSPEC_POS),
@@ -4653,7 +4668,7 @@ void PCM::cleanupUncorePMUs(const bool silent)
             pmu.cleanup();
         }
     }
-    
+
     for (auto& sPMUs : irpPMUs)
     {
         for (auto& pmu : sPMUs)
@@ -5242,19 +5257,19 @@ PCM::ErrorCode PCM::programServerUncoreLatencyMetrics(bool enable_pmm)
     if (enable_pmm == false)
     {   //DDR is false
         if (ICX == cpu_model || SPR == cpu_model || EMR == cpu_model)
-	{
+        {
             DDRConfig[0] = MC_CH_PCI_PMON_CTL_EVENT(0x80) + MC_CH_PCI_PMON_CTL_UMASK(1);  // DRAM RPQ occupancy
             DDRConfig[1] = MC_CH_PCI_PMON_CTL_EVENT(0x10) + MC_CH_PCI_PMON_CTL_UMASK(1);  // DRAM RPQ Insert
             DDRConfig[2] = MC_CH_PCI_PMON_CTL_EVENT(0x81) + MC_CH_PCI_PMON_CTL_UMASK(0);  // DRAM WPQ Occupancy
             DDRConfig[3] = MC_CH_PCI_PMON_CTL_EVENT(0x20) + MC_CH_PCI_PMON_CTL_UMASK(0);  // DRAM WPQ Insert
 
-	} else {
+        } else {
 
             DDRConfig[0] = MC_CH_PCI_PMON_CTL_EVENT(0x80) + MC_CH_PCI_PMON_CTL_UMASK(0);  // DRAM RPQ occupancy
             DDRConfig[1] = MC_CH_PCI_PMON_CTL_EVENT(0x10) + MC_CH_PCI_PMON_CTL_UMASK(0);  // DRAM RPQ Insert
             DDRConfig[2] = MC_CH_PCI_PMON_CTL_EVENT(0x81) + MC_CH_PCI_PMON_CTL_UMASK(0);  // DRAM WPQ Occupancy
             DDRConfig[3] = MC_CH_PCI_PMON_CTL_EVENT(0x20) + MC_CH_PCI_PMON_CTL_UMASK(0);  // DRAM WPQ Insert
-	}
+        }
     } else {
         DDRConfig[0] = MC_CH_PCI_PMON_CTL_EVENT(0xe0) + MC_CH_PCI_PMON_CTL_UMASK(1);  // PMM RDQ occupancy
         DDRConfig[1] = MC_CH_PCI_PMON_CTL_EVENT(0xe3) + MC_CH_PCI_PMON_CTL_UMASK(0);  // PMM RDQ Insert
@@ -5956,7 +5971,7 @@ void PCM::readAndAggregateUncoreMCCounters(const uint32 socket, CounterStateType
         if (serverUncorePMUs.size() && serverUncorePMUs[socket].get())
         {
             serverUncorePMUs[socket]->freezeCounters();
-	    if (ReadMCStatsFromServerBW == false)
+            if (ReadMCStatsFromServerBW == false)
             {
                 result.UncMCNormalReads += serverUncorePMUs[socket]->getImcReads();
                 result.UncMCFullWrites += serverUncorePMUs[socket]->getImcWrites();
@@ -7854,8 +7869,8 @@ public:
                 uint32 config1HL[2];
             } cvt;
             cvt.config1 = ctl->event.config1;
-	    cvt.config1HL[filterNr] = val;
-	    ctl->event.config1 = cvt.config1;
+            cvt.config1HL[filterNr] = val;
+            ctl->event.config1 = cvt.config1;
         }
     }
     operator uint64 () override
@@ -7889,7 +7904,7 @@ public:
             u64 eng:8;
         } filter_cfg;
         */
-        
+
         switch (filterNr)
         {
             case 0: //FLT_WQ
@@ -7899,11 +7914,11 @@ public:
             case 1: //FLT_TC
                 controlReg->event.config1 = ((controlReg->event.config1 & 0xFFFFF00FFFFFFFF) | ((val & 0xFF) << 32));
                 break;
-                
+
             case 2: //FLT_PG_SZ
                 controlReg->event.config1 = ((controlReg->event.config1 & 0xFFFF0FFFFFFFFFF) | ((val & 0xF) << 40));
                 break;
-                
+
             case 3: //FLT_XFER_SZ
                 controlReg->event.config1 = ((controlReg->event.config1 & 0xFF00FFFFFFFFFFF) | ((val & 0xFF) << 44));
                 break;
@@ -8075,7 +8090,7 @@ std::vector<std::pair<int, uint32> > enumerateIDXPerfPMUs(const std::string & ty
             ids.push_back(std::make_pair(pmuID, numaNode));
         }
     }
-    
+
     return ids;
 }
 
@@ -8690,21 +8705,21 @@ uint64 ServerUncorePMUs::getHALocalRequests()
 
 void ServerUncorePMUs::programHA()
 {
-	uint32 config[4];
-	config[0] = 0;
-	config[1] = 0;
+        uint32 config[4];
+        config[0] = 0;
+        config[1] = 0;
 #ifdef PCM_HA_REQUESTS_READS_ONLY
-	// HA REQUESTS READ: LOCAL + REMOTE
-	config[PCM::EventPosition::REQUESTS_ALL] = HA_PCI_PMON_CTL_EVENT(0x01) + HA_PCI_PMON_CTL_UMASK((1 + 2));
-	// HA REQUESTS READ: LOCAL ONLY
-	config[PCM::EventPosition::REQUESTS_LOCAL] = HA_PCI_PMON_CTL_EVENT(0x01) + HA_PCI_PMON_CTL_UMASK((1));
+        // HA REQUESTS READ: LOCAL + REMOTE
+        config[PCM::EventPosition::REQUESTS_ALL] = HA_PCI_PMON_CTL_EVENT(0x01) + HA_PCI_PMON_CTL_UMASK((1 + 2));
+        // HA REQUESTS READ: LOCAL ONLY
+        config[PCM::EventPosition::REQUESTS_LOCAL] = HA_PCI_PMON_CTL_EVENT(0x01) + HA_PCI_PMON_CTL_UMASK((1));
 #else
-	// HA REQUESTS READ+WRITE+REMOTE+LOCAL
-	config[PCM::EventPosition::REQUESTS_ALL] = HA_PCI_PMON_CTL_EVENT(0x01) + HA_PCI_PMON_CTL_UMASK((1 + 2 + 4 + 8));
-	// HA REQUESTS READ+WRITE (LOCAL only)
-	config[PCM::EventPosition::REQUESTS_LOCAL] = HA_PCI_PMON_CTL_EVENT(0x01) + HA_PCI_PMON_CTL_UMASK((1 + 4));
+        // HA REQUESTS READ+WRITE+REMOTE+LOCAL
+        config[PCM::EventPosition::REQUESTS_ALL] = HA_PCI_PMON_CTL_EVENT(0x01) + HA_PCI_PMON_CTL_UMASK((1 + 2 + 4 + 8));
+        // HA REQUESTS READ+WRITE (LOCAL only)
+        config[PCM::EventPosition::REQUESTS_LOCAL] = HA_PCI_PMON_CTL_EVENT(0x01) + HA_PCI_PMON_CTL_UMASK((1 + 4));
 #endif
-	programHA(config);
+        programHA(config);
 }
 
 void ServerUncorePMUs::freezeCounters()
@@ -9590,7 +9605,7 @@ void PCM::programIDXAccelCounters(uint32 accel, std::vector<uint64_t> &events, s
                 *ctrl_reg = 0x0;
             }
 
-            *filter_wq_reg = extract_bits_ui(filters_wq.at(i), 0, 15);            
+            *filter_wq_reg = extract_bits_ui(filters_wq.at(i), 0, 15);
             *filter_eng_reg = extract_bits_ui(filters_eng.at(i), 0, 15);
             *filter_tc_reg = extract_bits_ui(filters_tc.at(i), 0, 7);
             *filter_pgsz_reg = extract_bits_ui(filters_pgsz.at(i), 0, 7);
@@ -9994,7 +10009,7 @@ IDX_PMU::IDX_PMU(const bool perfMode_,
         const std::vector<HWRegisterPtr> & counterFilterTC,
         const std::vector<HWRegisterPtr> & counterFilterPGSZ,
         const std::vector<HWRegisterPtr> & counterFilterXFERSZ
-    ) : 
+    ) :
     cpu_model_(0),
     perf_mode_(perfMode_),
     numa_node_(numaNode_),
