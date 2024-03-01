@@ -3284,16 +3284,16 @@ PCM::ErrorCode PCM::program(const PCM::ProgramMode mode_, const void * parameter
 
                 // PROG: add L1 counters
                 coreEventDesc[4].event_number = SKL_MEM_LOAD_RETIRED_L1_HIT_EVTNR;
-                coreEventDesc[4].event_number = SKL_MEM_LOAD_RETIRED_L1_HIT_UMASK;
+                coreEventDesc[4].umask_value = SKL_MEM_LOAD_RETIRED_L1_HIT_UMASK;
 
                 coreEventDesc[5].event_number = SKL_MEM_LOAD_RETIRED_L1_MISS_EVTNR;
-                coreEventDesc[5].event_number = SKL_MEM_LOAD_RETIRED_L1_MISS_UMASK;
+                coreEventDesc[5].umask_value = SKL_MEM_LOAD_RETIRED_L1_MISS_UMASK;
 
                 coreEventDesc[6].event_number = SKL_MEM_LOAD_RETIRED_L1_HIT_LFB_EVTNR;
-                coreEventDesc[6].event_number = SKL_MEM_LOAD_RETIRED_L1_HIT_LFB_UMASK;
+                coreEventDesc[6].umask_value = SKL_MEM_LOAD_RETIRED_L1_HIT_LFB_UMASK;
 
                 coreEventDesc[7].event_number = SKL_MEM_LOAD_RETIRED_ALL_LOADS_EVTNR;
-                coreEventDesc[7].event_number = SKL_MEM_LOAD_RETIRED_ALL_LOADS_UMASK;
+                coreEventDesc[7].umask_value = SKL_MEM_LOAD_RETIRED_ALL_LOADS_UMASK;
 
                 if (core_gen_counter_num_max == 2)
                 {
@@ -3321,6 +3321,10 @@ PCM::ErrorCode PCM::program(const PCM::ProgramMode mode_, const void * parameter
                 L2CacheHitsAvailable = true;
                 L3CacheHitsSnoopAvailable = true;
                 L3CacheHitsAvailable = true;
+                // PROG
+                L1CacheMissesAvailable = true;
+                L1CacheHitsAvailable = true;
+
                 core_gen_counter_num_used = 4;
                 break;
             case SANDY_BRIDGE:

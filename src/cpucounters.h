@@ -311,7 +311,7 @@ public:
     std::vector<HWRegisterPtr> counterFilterENG;
     std::vector<HWRegisterPtr> counterFilterTC;
     std::vector<HWRegisterPtr> counterFilterPGSZ;
-    std::vector<HWRegisterPtr> counterFilterXFERSZ; 
+    std::vector<HWRegisterPtr> counterFilterXFERSZ;
 
     IDX_PMU(const bool perfMode_,
         const uint32 numaNode_,
@@ -823,6 +823,9 @@ private:
     bool L3CacheHitsNoSnoopAvailable;
     bool L3CacheHitsSnoopAvailable;
     bool L3CacheHitsAvailable;
+    // PROG
+    bool L1CacheMissesAvailable;
+    bool L1CacheHitsAvailable;
 
     bool forceRTMAbortMode;
 
@@ -1682,7 +1685,7 @@ public:
             \return Number of sockets in the system
     */
     uint32 getNumSockets() const;
-    
+
     /*! \brief Reads  the accel type in the system
         \return acceltype
     */
@@ -1700,7 +1703,7 @@ public:
 
     /*! \brief Sets the Number of AccelCounters in the system
         \return number of counters
-    */          
+    */
     void setNumberofAccelCounters(uint32 input);
 
     /*! \brief Reads number of online sockets (CPUs) in the system
@@ -2216,16 +2219,16 @@ public:
 
     //! \brief Control QAT telemetry service
     //! \param dev device index
-    //! \param operation control code 
+    //! \param operation control code
     void controlQATTelemetry(uint32 dev, uint32 operation);
 
     //! \brief Program IDX events
     //! \param events config of event to program
-    //! \param filters_wq filters(work queue) of event to program 
-    //! \param filters_eng filters(engine) of event to program 
-    //! \param filters_tc filters(traffic class) of event to program 
-    //! \param filters_pgsz filters(page size) of event to program 
-    //! \param filters_xfersz filters(transfer size) of event to program 
+    //! \param filters_wq filters(work queue) of event to program
+    //! \param filters_eng filters(engine) of event to program
+    //! \param filters_tc filters(traffic class) of event to program
+    //! \param filters_pgsz filters(page size) of event to program
+    //! \param filters_xfersz filters(transfer size) of event to program
     void programIDXAccelCounters(uint32 accel, std::vector<uint64_t> &events, std::vector<uint32> &filters_wq, std::vector<uint32> &filters_eng, std::vector<uint32> &filters_tc, std::vector<uint32> &filters_pgsz, std::vector<uint32> &filters_xfersz);
 
 
@@ -2447,7 +2450,7 @@ public:
         return (
                cpu_model == PCM::SKX
             || cpu_model == PCM::ICX
-	        || cpu_model  == PCM::SNOWRIDGE
+                || cpu_model  == PCM::SNOWRIDGE
             || cpu_model == PCM::SPR
             || cpu_model == PCM::EMR
         );
@@ -2690,6 +2693,8 @@ public:
 
     #define PCM_GENERATE_METRIC_AVAILABLE_FUNCTION(m) bool is##m() const { return m; }
 
+    PCM_GENERATE_METRIC_AVAILABLE_FUNCTION(L1CacheMissesAvailable)
+    PCM_GENERATE_METRIC_AVAILABLE_FUNCTION(L1CacheHitsAvailable)
     PCM_GENERATE_METRIC_AVAILABLE_FUNCTION(L2CacheHitRatioAvailable)
     PCM_GENERATE_METRIC_AVAILABLE_FUNCTION(L3CacheHitRatioAvailable)
     PCM_GENERATE_METRIC_AVAILABLE_FUNCTION(L3CacheMissesAvailable)
@@ -2748,6 +2753,17 @@ class BasicCounterState
     friend uint64 getL3CacheHits(const CounterStateType & before, const CounterStateType & after);
     template <class CounterStateType>
     friend uint64 getL3CacheOccupancy(const CounterStateType & now);
+
+    // PROG
+    template <class CounterStateType>
+    friend uint64 getL1CacheHits(const CounterStateType & before, const CounterStateType & after);
+    template <class CounterStateType>
+    friend uint64 getL1CacheMisses(const CounterStateType & before, const CounterStateType & after);
+    template <class CounterStateType>
+    friend uint64 getL1HitLFB(const CounterStateType & before, const CounterStateType & after);
+    template <class CounterStateType>
+    friend uint64 getMemLoads(const CounterStateType & before, const CounterStateType & after);
+
     template <class CounterStateType>
     friend uint64 getLocalMemoryBW(const CounterStateType & before, const CounterStateType & after);
     template <class CounterStateType>
@@ -2818,7 +2834,11 @@ protected:
             SKLL2MissPos = 2,
             HSXL2MissPos = 2,
                 L2HitPos = 3,
-             HSXL2RefPos = 3
+             HSXL2RefPos = 3,
+             SKLL1HitPos = 4,
+            SKLL1MissPos = 5,
+          SKLL1HitLFBPos = 6,
+           SKLMemLoadPos = 7,
     };
     uint64 InvariantTSC; // invariant time stamp counter
     uint64 CStateResidency[PCM::MAX_C_STATE + 1];
@@ -3944,6 +3964,57 @@ double getActiveRelativeFrequency(const CounterStateType & before, const Counter
         return double(clocks) / double(ref_clocks);
     return -1;
 }
+
+// PROG
+/*! \brief Computes L1 cache hit count
+
+    \param before CPU counter state before the experiment
+    \param after CPU counter state after the experiment
+    \warning Works only in the DEFAULT_EVENTS programming mode (see program() method)
+    \return L1 cahe hit count
+*/
+template <class CounterStateType>
+uint64 getL1CacheHits(const CounterStateType& before, const CounterStateType& after)
+{
+    auto* pcm = PCM::getInstance();
+    if (!pcm->isL1CacheHitsAvailable()) return 0;
+    if (pcm->useSkylakeEvents()) {
+      return after.Event[BasicCounterState::SKLL1HitPos] - before.Event[BasicCounterState::SKLL1HitPos];
+    }
+    return 0;
+}
+
+template <class CounterStateType>
+uint64 getL1CacheMisses(const CounterStateType& before, const CounterStateType& after)
+{
+    auto* pcm = PCM::getInstance();
+    if (!pcm->isL1CacheMissesAvailable()) return 0;
+    if (pcm->useSkylakeEvents()) {
+        return after.Event[BasicCounterState::SKLL1MissPos] - before.Event[BasicCounterState::SKLL1MissPos];
+ }
+    return 0;
+}
+
+template <class CounterStateType>
+uint64 getL1HitLFB(const CounterStateType& before, const CounterStateType& after)
+{
+    auto* pcm = PCM::getInstance();
+    if (pcm->useSkylakeEvents()) {
+        return after.Event[BasicCounterState::SKLL1HitLFBPos] - before.Event[BasicCounterState::SKLL1HitLFBPos];
+    }
+    return 0;
+}
+
+template <class CounterStateType>
+uint64 getMemLoads(const CounterStateType& before, const CounterStateType& after)
+{
+    auto* pcm = PCM::getInstance();
+    if (pcm->useSkylakeEvents()) {
+        return after.Event[BasicCounterState::SKLMemLoadPos] - before.Event[BasicCounterState::SKLMemLoadPos];
+    }
+    return 0;
+}
+
 
 /*! \brief Computes L2 cache hit ratio
 
