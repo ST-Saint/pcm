@@ -643,6 +643,20 @@ public:
         assert(core_id < maxCPUs);
         old_affinity = CPU_ALLOC(maxCPUs);
         assert(old_affinity);
+
+        static const int available_cpus[] = {10, 12, 14};
+        static const int available_cpus_num = sizeof(available_cpus)/sizeof(available_cpus[0]);
+        bool core_available = false;
+        for(int i = 0; i < available_cpus_num; ++i){
+          if( core_id == available_cpus[i] ){
+            core_available = true;
+            break;
+          }
+        }
+        if( !core_available ){
+          return;
+        }
+
         auto res = pthread_getaffinity_np(pthread_self(), set_size, old_affinity);
         if (res != 0)
         {
